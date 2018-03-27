@@ -12,8 +12,8 @@ namespace MiniCsharpEngine
         //new string[] { ".*?||.*?", "?.*:.*" }
         readonly List<Func<string, string>> operators = new List<Func<string, string>>()
         {
-               EvalBool,
               EvalConditional,
+              EvalBool,
         };
 
         private static string EvalConditional(string input)
