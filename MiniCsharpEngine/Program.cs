@@ -9,8 +9,14 @@ using System.Windows;
 
 namespace MiniCsharpEngine
 {
+/* Xaml中使用的特殊字符串
+&lt;    <!-- Less than symbol -->
+&gt;    <!-- Greater than symbol -->
+&amp;   <!-- Ampersand symbol -->
+&quot;  <!-- Double quote symbol -->
+*/
 
-    /*执行优先级
+/*执行优先级
 !      ++     --                    1
 *     /    %                        2
  +     -                            3
@@ -57,42 +63,38 @@ namespace MiniCsharpEngine
 
         static string EvalBool(string input)
         {
-            //"(.*?)(\|{2}|\&{2})(.*)"
-            string pattern = @"(.*?)(\|{2}|\&{2})(.*)";
-            Regex regex = new Regex(pattern);
-            var m = regex.Match(input);
-            if (m.Success)
+            //"(((?!\||\&).)+)(\|{2}|\&{2})(((?!\||\&).)+)"
+            string pattern = @"(((?!\||\&).)+)(\|{2}|\&{2})(((?!\||\&).)+)";
+            Regex regex = new Regex(pattern, RegexOptions.RightToLeft);
+            var mes = regex.Matches(input);
+            foreach (Match m in mes)
             {
-                var matched = m.Groups[0].Value;
-                var left = m.Groups[1].Value;
-                var opr = m.Groups[2].Value;
-                var right = m.Groups[3].Value;
-                while (true)
+                if (m.Success)
                 {
-                    var newRight = EvalBool(right);
-                    if (newRight == right)
-                        break;
-                    else
-                        right = newRight;
+                    var matched = m.Groups[0].Value;
+                    var left = m.Groups[1].Value;
+                    var opr = m.Groups[3].Value;
+                    var right = m.Groups[4].Value;
+
+                    bool isBool;
+                    isBool = bool.TryParse(left, out bool bleft);
+                    if (!isBool)
+                        return input;
+                    isBool = bool.TryParse(right, out bool bright);
+                    if (!isBool)
+                        return input;
+                    bool result = false;
+                    switch (opr)
+                    {
+                        case "&&":
+                            result = bleft && bright;
+                            break;
+                        case "||":
+                            result = bleft || bright;
+                            break;
+                    }
+                    input = input.Replace(matched, result.ToString());
                 }
-                bool isBool;
-                isBool = bool.TryParse(left, out bool bleft);
-                if (!isBool)
-                    return input;
-                isBool = bool.TryParse(right, out bool bright);
-                if (!isBool)
-                    return input;
-                bool result = false;
-                switch (opr)
-                {
-                    case "&&":
-                        result = bleft && bright;
-                        break;
-                    case "||":
-                        result = bleft || bright;
-                        break;
-                }
-                input = input.Replace(matched, result.ToString());
             }
 
             return input;
@@ -144,7 +146,13 @@ namespace MiniCsharpEngine
             //解析操作符
             foreach (var item in operators)
             {
-                pattern = item(pattern);
+                string temp = null;
+                do
+                {
+                    temp = pattern;
+                    pattern = item(pattern);
+                }
+                while (temp != pattern);
             }
 
             //按要求返回指定类型
@@ -174,9 +182,9 @@ namespace MiniCsharpEngine
             Debug.Assert(Test("(int)True?111:222").ToString() == 111.ToString());
             Debug.Assert(Test("(bool)1>2").ToString() == false.ToString());
             Debug.Assert(Test("(bool)1<2").ToString() == true.ToString());
+            Debug.Assert(Test("(bool)False||False||1<2").ToString() == true.ToString());
             Debug.Assert(Test("(bool)True||False||1<2").ToString() == true.ToString());
             Debug.Assert(Test("(bool)False||False||1>2").ToString() == false.ToString());
-            //Test("(11==22)?111:222");
         }
 
         private static object Test(string script)
