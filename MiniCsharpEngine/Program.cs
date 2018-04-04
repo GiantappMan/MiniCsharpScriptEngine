@@ -9,34 +9,35 @@ using System.Windows;
 
 namespace MiniCsharpEngine
 {
-/* Xaml中使用的特殊字符串
-&lt;    <!-- Less than symbol -->
-&gt;    <!-- Greater than symbol -->
-&amp;   <!-- Ampersand symbol -->
-&quot;  <!-- Double quote symbol -->
-*/
+    /* Xaml中使用的特殊字符串
+    &lt;    <!-- Less than symbol -->
+    &gt;    <!-- Greater than symbol -->
+    &amp;   <!-- Ampersand symbol -->
+    &quot;  <!-- Double quote symbol -->
+    */
 
-/*执行优先级
-!      ++     --                    1
-*     /    %                        2
- +     -                            3
- <   >    <=    >=    is            4
-==    !=                            5
-&                                   6
-^                                   7
-|                                   8
-&&                                  9
-||                                  10
-?:                                  11
-   */
+    /*执行优先级
+    !      ++     --                    1
+    *     /    %                        2
+     +     -                            3
+     <   >    <=    >=    is            4
+    ==    !=                            5
+    &                                   6
+    ^                                   7
+    |                                   8
+    &&                                  9
+    ||                                  10
+    ?:                                  11
+       */
     public class MiniCsharpEngine
     {
-        readonly string groupOperato = @"\(.*?\)";
+        readonly string groupOperato = @"\((.*)\)";
         readonly string[] returnValues = new string[] { "bool", "int", "double", "Visibility" };
         //new string[] { ".*?||.*?", "?.*:.*" }
         readonly List<Func<string, string>> operators = new List<Func<string, string>>()
         {
               EvalGtLt, //4
+              EvalEqual,//5
               EvalBool,  //9-10
               EvalConditional, //11
         };
@@ -127,6 +128,33 @@ namespace MiniCsharpEngine
 
             return input;
         }
+        static string EvalEqual(string input)
+        {
+            //"(.+?)(\=\={1}|\!\={1})(((?!\||\&|\?|\:).)+)"
+            string pattern = @"(.+?)(\=\={1}|\!\={1})(((?!\||\&|\?|\:).)+)";
+            Regex regex = new Regex(pattern);
+            var m = regex.Match(input);
+            if (m.Success)
+            {
+                var matched = m.Groups[0].Value;
+                var left = m.Groups[1].Value;
+                var opr = m.Groups[2].Value;
+                var right = m.Groups[3].Value;
+                bool result = false;
+                switch (opr)
+                {
+                    case "==":
+                        result = left == right;
+                        break;
+                    case "!=":
+                        result = left != right;
+                        break;
+                }
+                input = input.Replace(matched, result.ToString());
+            }
+
+            return input;
+        }
 
         public object Eval(string pattern)
         {
@@ -143,17 +171,11 @@ namespace MiniCsharpEngine
                 }
             }
 
+            //解析括号，优先执行
+            pattern = GroupCommand(pattern);
+
             //解析操作符
-            foreach (var item in operators)
-            {
-                string temp = null;
-                do
-                {
-                    temp = pattern;
-                    pattern = item(pattern);
-                }
-                while (temp != pattern);
-            }
+            pattern = ResolveCommand(pattern);
 
             //按要求返回指定类型
             switch (returnType)
@@ -167,6 +189,42 @@ namespace MiniCsharpEngine
                 default:
                     return pattern;
             }
+        }
+
+        private string GroupCommand(string pattern)
+        {
+            string temp = null;
+            do
+            {
+                temp = pattern;
+                var matched = Regex.Match(pattern, groupOperato);
+                if (matched.Success)
+                {
+                    string value = matched.Groups[1].Value;
+                    //解析多重内嵌括号 ((1==2))
+                    value = GroupCommand(value);
+                    var result = ResolveCommand(value);
+                    pattern = pattern.Replace(matched.Value, result);
+                }
+            }
+            while (temp != pattern);
+            return pattern;
+        }
+
+        private string ResolveCommand(string pattern)
+        {
+            foreach (var item in operators)
+            {
+                string temp = null;
+                do
+                {
+                    temp = pattern;
+                    var result = item(pattern);
+                    pattern = result;
+                }
+                while (temp != pattern);
+            }
+            return pattern;
         }
     }
 
@@ -185,6 +243,11 @@ namespace MiniCsharpEngine
             Debug.Assert(Test("(bool)False||False||1<2").ToString() == true.ToString());
             Debug.Assert(Test("(bool)True||False||1<2").ToString() == true.ToString());
             Debug.Assert(Test("(bool)False||False||1>2").ToString() == false.ToString());
+
+            Debug.Assert(Test("(bool)False||False||(2>1&&1<2)").ToString() == true.ToString());
+            Debug.Assert(Test("(bool)1<2&&True&&(True==False||1<2)").ToString() == true.ToString());
+            Debug.Assert(Test("(bool)1<2&&True&&((True==False)||1<2)").ToString() == true.ToString());
+            Debug.Assert(Test("(bool)1<2&&True&&((True==False)||1>2)").ToString() == false.ToString());
         }
 
         private static object Test(string script)
