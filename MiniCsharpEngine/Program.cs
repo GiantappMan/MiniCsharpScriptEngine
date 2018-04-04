@@ -233,24 +233,24 @@ namespace MiniCsharpEngine
         static MiniCsharpEngine engine = new MiniCsharpEngine();
         static void Main(string[] args)
         {
-            Debug.Assert(Test("True||False").ToString() == "True");
-            Debug.Assert(Test("True?111:222").ToString() == "111");
+            Debug.Assert(Eval("True||False").ToString() == "True");
+            Debug.Assert(Eval("True?111:222").ToString() == "111");
 
-            Debug.Assert(Test("(bool)True||False").ToString() == true.ToString());
-            Debug.Assert(Test("(int)True?111:222").ToString() == 111.ToString());
-            Debug.Assert(Test("(bool)1>2").ToString() == false.ToString());
-            Debug.Assert(Test("(bool)1<2").ToString() == true.ToString());
-            Debug.Assert(Test("(bool)False||False||1<2").ToString() == true.ToString());
-            Debug.Assert(Test("(bool)True||False||1<2").ToString() == true.ToString());
-            Debug.Assert(Test("(bool)False||False||1>2").ToString() == false.ToString());
+            Debug.Assert(Eval("(bool)True||False").ToString() == true.ToString());
+            Debug.Assert(Eval("(int)True?111:222").ToString() == 111.ToString());
+            Debug.Assert(Eval("(bool)1>2").ToString() == false.ToString());
+            Debug.Assert(Eval("(bool)1<2").ToString() == true.ToString());
+            Debug.Assert(Eval("(bool)False||False||1<2").ToString() == true.ToString());
+            Debug.Assert(Eval("(bool)True||False||1<2").ToString() == true.ToString());
+            Debug.Assert(Eval("(bool)False||False||1>2").ToString() == false.ToString());
 
-            Debug.Assert(Test("(bool)False||False||(2>1&&1<2)").ToString() == true.ToString());
-            Debug.Assert(Test("(bool)1<2&&True&&(True==False||1<2)").ToString() == true.ToString());
-            Debug.Assert(Test("(bool)1<2&&True&&((True==False)||1<2)").ToString() == true.ToString());
-            Debug.Assert(Test("(bool)1<2&&True&&((True==False)||1>2)").ToString() == false.ToString());
+            Debug.Assert(Eval("(bool)False||False||(2>1&&1<2)").ToString() == true.ToString());
+            Debug.Assert(Eval("(bool)1<2&&True&&(True==False||1<2)").ToString() == true.ToString());
+            Debug.Assert(Eval("(bool)1<2&&True&&((True==False)||1<2)").ToString() == true.ToString());
+            Debug.Assert(Eval("(bool)1<2&&True&&((True==False)||1>2)").ToString() == false.ToString());
         }
 
-        private static object Test(string script)
+        private static object Eval(string script)
         {
             var result = engine.Eval(script);
             Console.WriteLine($"test:{script}, result:{result}");
