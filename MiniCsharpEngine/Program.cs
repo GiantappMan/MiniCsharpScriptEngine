@@ -75,14 +75,21 @@ namespace MiniCsharpEngine
                     else
                         right = newRight;
                 }
+                bool isBool;
+                isBool = bool.TryParse(left, out bool bleft);
+                if (!isBool)
+                    return input;
+                isBool = bool.TryParse(right, out bool bright);
+                if (!isBool)
+                    return input;
                 bool result = false;
                 switch (opr)
                 {
                     case "&&":
-                        result = bool.Parse(left) && bool.Parse(right);
+                        result = bleft && bright;
                         break;
                     case "||":
-                        result = bool.Parse(left) || bool.Parse(right);
+                        result = bleft || bright;
                         break;
                 }
                 input = input.Replace(matched, result.ToString());
