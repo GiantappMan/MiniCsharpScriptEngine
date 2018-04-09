@@ -9,6 +9,7 @@ using System.Windows;
 
 namespace MiniCsharpEngine
 {
+    //https://msdn.microsoft.com/zh-cn/library/6a71f45d(VS.80).aspx
     /* Xaml中使用的特殊字符串
     &lt;    <!-- Less than symbol -->
     &gt;    <!-- Greater than symbol -->
@@ -36,11 +37,66 @@ namespace MiniCsharpEngine
         //new string[] { ".*?||.*?", "?.*:.*" }
         readonly List<Func<string, string>> operators = new List<Func<string, string>>()
         {
+              EvalUnary,//1
+              EvalPlusAndMinus,//3
               EvalGtLt, //4
               EvalEqual,//5
               EvalBool,  //9-10
               EvalConditional, //11
         };
+
+        private static string EvalPlusAndMinus(string input)
+        {
+            //"((\d+(\.\d+)?)+?)(\+{1}|\-{1})(((?!\+|\-)(\d+(\.\d+)?))+)"
+            string pattern = @"((\d+(\.\d+)?)+?)(\+{1}|\-{1})(((?!\+|\-)(\d+(\.\d+)?))+)";
+            Regex regex = new Regex(pattern);
+            var m = regex.Match(input);
+            if (m.Success)
+            {
+                var matched = m.Groups[0].Value;
+                var left = float.Parse(m.Groups[1].Value);
+                var opr = m.Groups[4].Value;
+                var right = float.Parse(m.Groups[5].Value);
+                float result = 0;
+                switch (opr)
+                {
+                    case "+":
+                        result = left + right;
+                        break;
+                    case "-":
+                        result = left - right;
+                        break;
+                }
+                input = input.Replace(matched, result.ToString());
+            }
+
+            return input;
+        }
+
+        private static string EvalUnary(string input)
+        {
+            //"(\!{1})(((?!\!).)+)"
+            string pattern = @"(\!{1})(((?!\!).)+)";
+            Regex regex = new Regex(pattern);
+            var m = regex.Match(input);
+            if (m.Success)
+            {
+                var matched = m.Groups[0].Value;
+                //var left = m.Groups[1].Value;
+                var opr = m.Groups[1].Value;
+                var right = bool.Parse(m.Groups[2].Value);
+                bool result = false;
+                switch (opr)
+                {
+                    case "!":
+                        result = !right;
+                        break;
+                }
+                input = input.Replace(matched, result.ToString());
+            }
+
+            return input;
+        }
 
         static string EvalConditional(string input)
         {
@@ -61,7 +117,6 @@ namespace MiniCsharpEngine
 
             return input;
         }
-
         static string EvalBool(string input)
         {
             //"(((?!\||\&).)+)(\|{2}|\&{2})(((?!\||\&).)+)"
@@ -100,7 +155,6 @@ namespace MiniCsharpEngine
 
             return input;
         }
-
         static string EvalGtLt(string input)
         {
             //"(\d+?)(\>{1}|\<{1})(\d+)"
@@ -248,6 +302,13 @@ namespace MiniCsharpEngine
             Debug.Assert(Eval("(bool)1<2&&True&&(True==False||1<2)").ToString() == true.ToString());
             Debug.Assert(Eval("(bool)1<2&&True&&((True==False)||1<2)").ToString() == true.ToString());
             Debug.Assert(Eval("(bool)1<2&&True&&((True==False)||1>2)").ToString() == false.ToString());
+
+            Debug.Assert(Eval("(bool)!True").ToString() == false.ToString());
+            Debug.Assert(Eval("(bool)!False").ToString() == true.ToString());
+
+            Debug.Assert(Eval("(int)1+1").ToString() == 2.ToString());
+            Debug.Assert(Eval("(int)2-1").ToString() == 1.ToString());
+
         }
 
         private static object Eval(string script)
