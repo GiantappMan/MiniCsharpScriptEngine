@@ -76,7 +76,7 @@ namespace MiniCsharpEngine
         private static string EvalUnary(string input)
         {
             //"(\!{1})(((?!\!).)+)"
-            string pattern = @"(\!{1})(((?!\!).)+)";
+            string pattern = @"(\!{1})(((?!\!|\&|\?|\:).)+)";
             Regex regex = new Regex(pattern);
             var m = regex.Match(input);
             if (m.Success)
@@ -238,8 +238,18 @@ namespace MiniCsharpEngine
                 case "(int)": return int.Parse(pattern);
                 case "(double)": return double.Parse(pattern);
                 case "(Visibility)":
-                    var b = bool.Parse(pattern);
-                    return b ? Visibility.Visible : Visibility.Collapsed;
+                    bool isBool = bool.TryParse(pattern, out bool b);
+                    if (isBool)
+                    {
+                        return b ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                    else
+                    {
+                        bool isVisibility = Enum.TryParse<Visibility>(pattern, out Visibility v);
+                        if (isVisibility)
+                            return v;
+                    }
+                    return Visibility.Collapsed;
                 default:
                     return pattern;
             }
@@ -305,10 +315,11 @@ namespace MiniCsharpEngine
 
             Debug.Assert(Eval("(bool)!True").ToString() == false.ToString());
             Debug.Assert(Eval("(bool)!False").ToString() == true.ToString());
+            Debug.Assert(Eval("(Visibility)!False?Visible:Collapsed").ToString() == Visibility.Visible.ToString());
+            Debug.Assert(Eval("(Visibility)False?Visible:Collapsed").ToString() == Visibility.Collapsed.ToString());
 
             Debug.Assert(Eval("(int)1+1").ToString() == 2.ToString());
             Debug.Assert(Eval("(int)2-1").ToString() == 1.ToString());
-
         }
 
         private static object Eval(string script)

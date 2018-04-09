@@ -18,6 +18,8 @@
 
 		Debug.Assert(Eval("(bool)!True").ToString() == false.ToString());
 		Debug.Assert(Eval("(bool)!False").ToString() == true.ToString());
+		Debug.Assert(Eval("(Visibility)!False?Visible:Collapsed").ToString() == Visibility.Visible.ToString());
+		Debug.Assert(Eval("(Visibility)False?Visible:Collapsed").ToString() == Visibility.Collapsed.ToString());
 
 		Debug.Assert(Eval("(int)1+1").ToString() == 2.ToString());
 		Debug.Assert(Eval("(int)2-1").ToString() == 1.ToString());
