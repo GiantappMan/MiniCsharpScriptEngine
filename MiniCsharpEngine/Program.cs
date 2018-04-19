@@ -213,6 +213,19 @@ namespace MiniCsharpEngine
             return input;
         }
 
+        public object TryEval(string pattern)
+        {
+            try
+            {
+                return Eval(pattern);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+                return null;
+            }
+        }
+
         public object Eval(string pattern)
         {
             //解析返回类型
@@ -260,21 +273,71 @@ namespace MiniCsharpEngine
             }
         }
 
+        //private string GroupCommand(string pattern)
+        //{
+        //    string temp = null;
+        //    do
+        //    {
+        //        temp = pattern;
+        //        var matched = Regex.Match(pattern, groupOperato);
+        //        if (matched.Success)
+        //        {
+        //            string value = matched.Groups[1].Value;
+        //            //解析多重内嵌括号 ((1==2))
+        //            value = GroupCommand(value);
+        //            var result = ResolveCommand(value);
+        //            pattern = pattern.Replace(matched.Value, result);
+        //        }
+        //    }
+        //    while (temp != pattern);
+        //    return pattern;
+        //}
+
         private string GroupCommand(string pattern)
         {
             string temp = null;
             do
             {
                 temp = pattern;
-                var matched = Regex.Match(pattern, groupOperato);
-                if (matched.Success)
+                bool findLeft = true, findRinght = false;
+                int leftCount = 0, rightCount = 0;
+                int leftIndex = -1, rightIndex = -1;
+                for (int index = 0; index < pattern.Length; index++)
                 {
-                    string value = matched.Groups[1].Value;
-                    //解析多重内嵌括号 ((1==2))
-                    value = GroupCommand(value);
-                    var result = ResolveCommand(value);
-                    pattern = pattern.Replace(matched.Value, result);
+                    var item = pattern[index];
+                    if (item == '(')
+                    {
+                        leftCount++;
+                        if (findLeft)
+                        {
+                            leftIndex = index;
+                            findLeft = false;
+                            findRinght = true;
+                        }
+                    }
+
+                    if (item == ')')
+                    {
+                        rightCount++;
+                        if (findRinght && leftCount == rightCount)
+                        {
+                            rightIndex = index;
+                            findRinght = false;
+                            break;
+                        }
+                    }
                 }
+
+                var left = pattern.IndexOf("(");
+                if (leftIndex < 0)
+                    break;
+
+                var content = pattern.Substring(leftIndex, rightIndex - leftIndex + 1);
+                //解析多重内嵌括号 ((1==2))
+                var result = GroupCommand(content.Substring(1, content.Length - 2));
+                //var result = content.Substring(1, content.Length - 2);
+                result = ResolveCommand(result);
+                pattern = pattern.Replace(content, result);
             }
             while (temp != pattern);
             return pattern;
@@ -324,6 +387,12 @@ namespace MiniCsharpEngine
 
             Debug.Assert(Eval("(int)1+1").ToString() == 2.ToString());
             Debug.Assert(Eval("(int)2-1").ToString() == 1.ToString());
+
+            Debug.Assert(Eval("(False||False)&&!(False||False)?0.5:1").ToString() == "1");
+            Debug.Assert(Eval("((False||False)&&!(False||False))?0.5:1").ToString() == "1");
+
+            Debug.Assert(Eval("(False||False)||!(False||False)?0.5:1").ToString() == "0.5");
+            Debug.Assert(Eval("((False||False)||(False||True))?0.5:1").ToString() == "0.5");
         }
 
         private static object Eval(string script)
