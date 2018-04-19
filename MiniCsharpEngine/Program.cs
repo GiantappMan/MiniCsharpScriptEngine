@@ -133,10 +133,13 @@ namespace MiniCsharpEngine
                     var right = m.Groups[4].Value;
 
                     bool isBool;
-                    isBool = bool.TryParse(left, out bool bleft);
+                    bool bleft;
+                    isBool = bool.TryParse(left, out bleft);
                     if (!isBool)
                         return input;
-                    isBool = bool.TryParse(right, out bool bright);
+
+                    bool bright;
+                    isBool = bool.TryParse(right, out bright);
                     if (!isBool)
                         return input;
                     bool result = false;
@@ -238,14 +241,16 @@ namespace MiniCsharpEngine
                 case "(int)": return int.Parse(pattern);
                 case "(double)": return double.Parse(pattern);
                 case "(Visibility)":
-                    bool isBool = bool.TryParse(pattern, out bool b);
+                    bool b;
+                    bool isBool = bool.TryParse(pattern, out b);
                     if (isBool)
                     {
                         return b ? Visibility.Visible : Visibility.Collapsed;
                     }
                     else
                     {
-                        bool isVisibility = Enum.TryParse<Visibility>(pattern, out Visibility v);
+                        Visibility v;
+                        bool isVisibility = Enum.TryParse<Visibility>(pattern, out v);
                         if (isVisibility)
                             return v;
                     }
@@ -291,7 +296,6 @@ namespace MiniCsharpEngine
             return pattern;
         }
     }
-
     class Program
     {
         static MiniCsharpEngine engine = new MiniCsharpEngine();
